@@ -1,0 +1,61 @@
+#####TINKAMU DUOMENŲ IR PERIODO ATRINKIMAS IŠ COVID DUOMENŲ RINKINIO
+import matplotlib.pyplot as plt
+import pandas as pd
+pd.set_option("display.max_columns",20)
+pd.set_option("display.max_rows",1200)
+
+##------------Covid duomenų rinkinio apdorojimas--------------------------------------------
+agr_cov19=pd.read_csv("Agreguoti_COVID19_atvejai_ir_mirtys.csv")
+print(agr_cov19.head(120))
+
+#nuskaito duomenis iš failo https://osp.stat.gov.lt/covid-dashboards ➝
+# „Atviri duomenys“ ➝ „Agreguoti COVID19 atvejai ir mirtys“
+agrc19s=agr_cov19[["municipality_name","date","incidence","sex","age_gr"]]
+
+###--------------------Radimas periodo, kai sergamumas Lietuvoje buvo didžiausiais----
+agrc19_slice_time=agrc19s[["date","incidence"]]           #paimami duom laiko eilutei
+
+##---------Sugrupuojami duomenys ir nubreziamas laiko eilutes grafikas (metodas#1)----
+'''gr=agrc19_slice_time.groupby("date").sum()
+gr.incidence.plot(figsize=(12,8))
+plt.xticks(fontsize=8, rotation=270)
+print(gr.describe())
+plt.title("Metodas #1")
+plt.show()'''
+
+##---------Sugrupuojami duomenys ir nubreziamas laiko eilutes grafikas (metodas#2)----
+tl_incidence=agrc19_slice_time.set_index(pd.to_datetime(agrc19_slice_time.date)).drop("date",axis=1)
+tl_gr_inc=tl_incidence.resample("D").sum()         #sugrupuojama laiko eilute dienomis
+print("metodo 2 statistika")
+print(tl_gr_inc.describe())
+tl_gr_inc.incidence.plot(figsize=(12,8))
+plt.suptitle("Pranešimų apie susirgimus grafikas")
+plt.title("Metodas #2")
+plt.ylabel('Dienos suirgimai',fontsize=12)
+plt.xlabel('Laikotarpis',fontsize=12)
+plt.show()
+
+tl_gr_inc["minus30"]=0   #kintamas 30 d praejusiu dienu sirgimamas
+for i in range(len(tl_gr_inc)):
+#priskiria nauj. st. 30 dienų susirgimų sumą
+     if i-30 >=0:           # jei prieš šią eilutę yra 30 eilučių
+       for j in range(0,30):
+          tl_gr_inc.minus30[i]=(tl_gr_inc.minus30[i]+tl_gr_inc.incidence[i-j])
+
+          #prie reiksmes sumuojama 30 dienų susirgimų reikšmės
+tl_gr_inc.minus30=tl_gr_inc.minus30
+print(tl_gr_inc.describe())                # randamas 30 susirgimų maksimumas
+print(tl_gr_inc.minus30.loc[tl_gr_inc.minus30==311380])
+# randama susirgimų maximumo pabaigos data 30 dienų laikotarpyje
+
+
+###---------Nauja duomenų str. su susirgimų suma kiekvienai dienai ir savivaldybei
+###---------didžiausio sergamumo periodui-----------------------------------------
+mask1=agrc19s["date"] <= "2022/02/23 00:00:00+00"
+mask2=agrc19s["date"] >= "2022/01/11 00:00:00+00"
+#papildomai paimamas 14 dienų periods skaičiavimui sergančių žmonių
+
+
+# sukuriamas filtras  didžiausio susirgimo laikotarpiui
+agrc19sp=agrc19s.loc[mask1 & mask2]
+agrc19sp.to_csv('C:/Users/Lenovo/Desktop/Covid_savivaldybes2.csv')
