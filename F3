@@ -1,0 +1,62 @@
+##---------- NORMŲ FORMAVIMAS IŠ ŠALUTINIŲ DUOMENŲ
+import pandas as pd
+
+##Kuriama lentele normoms, sujungiant pradinius duomenis, pateiktus VDA duomenų bazėje
+amzius = pd.read_excel('amziusraw.xlsx')
+lytis = pd.read_excel('lytisraw.xlsx')
+
+lytis.rename(columns={'Moterų skaičius, tenkantis 1 tūkst. vyrų, apskrityse ir savivaldybėse metų pradžioje': 'savivaldybe'}, inplace=True)
+amzius.rename(columns={'Nuolatinių gyventojų skaičius metų pradžioje': 'savivaldybe'}, inplace=True)
+amzius = amzius.merge(lytis, how="inner", on='savivaldybe')
+
+amzius.rename(columns={'Unnamed: 1_x': 'Unnamed: 1'}, inplace=True)
+amzius.rename(columns={'Unnamed: 1_y': 'm/v'}, inplace=True)
+
+##----------Isfiltruoja eilutes ir palieka tik savivaldybes------------------------
+ilgis=len(amzius)
+for i in range(0,ilgis):
+    j=ilgis-i-1
+    if "sav." not in str(amzius.iloc[j,0]):
+      amzius=amzius.drop(amzius.index[j])
+    if "Marijampolės r. sav."  in str(amzius.iloc[j,0]):
+      amzius=amzius.drop(amzius.index[j])
+print(amzius)
+
+##----------Sudaro stulpelius su amziaus grupemis ir ismeta pameciui---------------
+amzius['viso']=amzius['Unnamed: 1']
+amzius['0-9']=amzius['Unnamed: 2']+amzius['Unnamed: 3']+amzius['Unnamed: 4']+amzius['Unnamed: 5']+amzius['Unnamed: 6']+amzius['Unnamed: 7']+amzius['Unnamed: 8']+amzius['Unnamed: 9']+amzius['Unnamed: 10']+amzius['Unnamed: 11']
+amzius['10-19']=amzius['Unnamed: 12']+amzius['Unnamed: 13']+amzius['Unnamed: 14']+amzius['Unnamed: 15']+amzius['Unnamed: 16']+amzius['Unnamed: 17']+amzius['Unnamed: 18']+amzius['Unnamed: 19']+amzius['Unnamed: 20']+amzius['Unnamed: 21']
+amzius['20-29']=amzius['Unnamed: 22']+amzius['Unnamed: 23']+amzius['Unnamed: 24']+amzius['Unnamed: 25']+amzius['Unnamed: 26']+amzius['Unnamed: 27']+amzius['Unnamed: 28']+amzius['Unnamed: 29']+amzius['Unnamed: 30']+amzius['Unnamed: 31']
+amzius['30-39']=amzius['Unnamed: 32']+amzius['Unnamed: 33']+amzius['Unnamed: 34']+amzius['Unnamed: 35']+amzius['Unnamed: 36']+amzius['Unnamed: 37']+amzius['Unnamed: 38']+amzius['Unnamed: 39']+amzius['Unnamed: 40']+amzius['Unnamed: 41']
+amzius['40-49']=amzius['Unnamed: 42']+amzius['Unnamed: 43']+amzius['Unnamed: 44']+amzius['Unnamed: 45']+amzius['Unnamed: 46']+amzius['Unnamed: 47']+amzius['Unnamed: 48']+amzius['Unnamed: 49']+amzius['Unnamed: 50']+amzius['Unnamed: 51']
+amzius['50-59']=amzius['Unnamed: 52']+amzius['Unnamed: 53']+amzius['Unnamed: 54']+amzius['Unnamed: 55']+amzius['Unnamed: 56']+amzius['Unnamed: 57']+amzius['Unnamed: 58']+amzius['Unnamed: 59']+amzius['Unnamed: 60']+amzius['Unnamed: 61']
+amzius['60-69']=amzius['Unnamed: 62']+amzius['Unnamed: 63']+amzius['Unnamed: 64']+amzius['Unnamed: 65']+amzius['Unnamed: 66']+amzius['Unnamed: 67']+amzius['Unnamed: 68']+amzius['Unnamed: 69']+amzius['Unnamed: 70']+amzius['Unnamed: 71']
+amzius['70-79']=amzius['Unnamed: 72']+amzius['Unnamed: 73']+amzius['Unnamed: 74']+amzius['Unnamed: 75']+amzius['Unnamed: 76']+amzius['Unnamed: 77']+amzius['Unnamed: 78']+amzius['Unnamed: 79']+amzius['Unnamed: 80']+amzius['Unnamed: 81']
+amzius['80-89']=(amzius['Unnamed: 82']+amzius['Unnamed: 83']+amzius['Unnamed: 84']+amzius['Unnamed: 85']+amzius['Unnamed: 86']+pd.to_numeric(amzius['Unnamed: 87']))*0.7
+amzius['90-99']=(amzius['Unnamed: 82']+amzius['Unnamed: 83']+amzius['Unnamed: 84']+amzius['Unnamed: 85']+amzius['Unnamed: 86']+pd.to_numeric(amzius['Unnamed: 87']))*0.2
+amzius['100-109']=(amzius['Unnamed: 82']+amzius['Unnamed: 83']+amzius['Unnamed: 84']+amzius['Unnamed: 85']+amzius['Unnamed: 86']+pd.to_numeric(amzius['Unnamed: 87']))*0.1
+amzius=amzius[['savivaldybe','viso','0-9','10-19','20-29','30-39','40-49','50-59','60-69','70-79','80-89','90-99','100-109','m/v']]
+
+##-------Randa normas amziaus grupems pagal daugiausiai zmoniu turincia amziaus
+# grupe; sunormuoja ir savivaldybes-----------------------------------------------
+amzius['0-9']=amzius['0-9']/amzius['50-59']
+amzius['10-19']=amzius['10-19']/amzius['50-59']
+amzius['20-29']=amzius['20-29']/amzius['50-59']
+amzius['30-39']=amzius['30-39']/amzius['50-59']
+amzius['40-49']=amzius['40-49']/amzius['50-59']
+amzius['60-69']=amzius['60-69']/amzius['50-59']
+amzius['70-79']=amzius['70-79']/amzius['50-59']
+amzius['80-89']=amzius['80-89']/amzius['50-59']
+amzius['90-99']=amzius['90-99']/amzius['50-59']
+amzius['100-109']=amzius['100-109']/amzius['50-59']
+amzius['50-59']=amzius['50-59']/amzius['50-59']
+amzius['m/v']=pd.to_numeric(amzius['m/v']/1000)
+amzius['viso']=pd.to_numeric(amzius['viso']/100000)
+
+##-------Perrašo normų lentelę į failą---------------------------------------------
+amzius.to_csv('C:/Users/Lenovo/Desktop/normos.csv')
+
+
+
+
+
