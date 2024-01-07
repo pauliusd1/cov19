@@ -1,0 +1,179 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+pd.set_option("display.max_columns",20)
+pd.set_option("display.max_rows",155)
+pd.set_option("display.width",200)
+
+def cut(sav):
+    # funkcija skirta iš "string" duomens pašalinti 2 pirmus ir 2 paskuinius skaitmenis
+    temp = ''
+    l = len(sav)
+    for char in range(2, l - 2):
+        temp += sav[char]
+    return temp
+
+
+
+
+
+##-------------Rengiami duomenys grafikui--------------------------------------------
+
+dg = pd.read_csv("C:/Users/Lenovo/Desktop/sunormuota.csv")
+
+#----------kuriamas naujas duomenu masyvas su suminiais norminais# susirgimais
+#kiekvienai savivaldybei kiekvieną dieną
+listd=dg.date.unique()           #suranda unikalių datų sąrašą
+new=pd.DataFrame(columns=['date','municipality_name','prevalence'])
+for i in listd:                                          ## imama kiekviena data
+    mask=dg.date == i                              #sukuriamas filtras
+    temp=dg.loc[mask]
+    # sukuriamas nauja laikina duom str konkrečios daos duomenims
+    listm = temp.municipality_name.unique()
+    # sukuriamas kiekvienos datos savivaldybių sąrašas
+    for j in listm:                                   ## imama kiekviena savivaldybė
+        mask2=temp.municipality_name == j                        #sukuriamas filtras
+        temp2=temp.loc[mask2]
+        # sukuriamas nauja temp duomenų struktūra konkrečios datos duomenimis
+        suma=temp2.prevalence.sum()
+        #surandama tos dienos ir savivaldybės susirgimų suma
+        new.loc[len(new.index)] = [i, j, suma]
+        # nauja duomenų eilutė struktūrai su savivaldybe, data ir užsikrėtimų suma
+dg=new
+
+##-----------Papildo duomenų masyvą savivaldybemis kurios nepranešė tą dieną ir joms
+# irašo nulius
+listd=dg.date.unique()
+listm=dg.municipality_name.unique()
+for i in listd: # "einama" padieniui per duomenis grafikui
+ mask=dg.date==i
+ temp=dg.municipality_name.loc[mask] # išrenka tos dienos sav. sąrašą
+ listun=temp.unique()
+ for k in listm: # einama per egzistuojančių sav. sarašą
+     if k not in listun: # jei savivaldybės nėra , pildomi duomenys grafikui
+         ##print(i,'',k)
+         new_row = {'date': i, 'municipality_name':k,'prevalence':0}
+         dg.loc[len(dg)] = new_row
+dg.sort_values(['municipality_name','date'],inplace=True)
+
+
+##-----------------------Prideda 14 paskutinių dienų užsikrėtimų-sirgimų reikšmes----
+new=pd.DataFrame(columns=['date','municipality_name','prevalence','prevalence_14'])
+listd=dg.date.unique()                   #unikalios datos
+listm=dg.municipality_name.unique()      #unikalios savivaldybes
+for i in listm:                          # "einama" pasavivaldybiui per duomenis grafikui
+    mask=dg.municipality_name==i
+    temp=dg.loc[mask]                    # išrenka tos sav dien7 sar6a sąrašą su nsirgimais
+    suma=0
+    for i in range(len(temp)):           #eina per savivaldybes dienas
+        if i - 14 >= 0:  # jei prieš šią eilutę yra 14 eilučių
+            suma = 0
+            for j in range(0, 14):   #im vis kiekviena eilute atgal nuo esan2ios ir prideda prie  sumos
+                suma=suma+temp.iloc[i - j,2]
+        new_row = {'date': temp.iloc[i,0], 'municipality_name': temp.iloc[i,1], 'prevalence': temp.iloc[i,2], 'prevalence_14': suma}
+        new.loc[len(new)] = new_row
+new.sort_values(['municipality_name','date'],inplace=True)
+dg=new
+
+##-----------------Iš duomenų išfiltruoja konkretu reikalingą laikotarpį
+mask1=dg["date"] <= "2022/02/23 00:00:00+00"
+mask2=dg["date"] >= "2022/01/25 00:00:00+00"
+
+# sukuriamas filtras  didžiausio susirgimo laikotarpiui
+dg=dg.loc[mask1 & mask2]
+print(dg)
+
+#-------------------Skaičiuojamas rankas kiekvienai savivaldybei-------------------
+relative_rank = dg.groupby(['date'])['prevalence_14'].rank(ascending=False)
+#sugrupuojama pagal datas
+# sukuria rank duomenis kiekvienos dienos pagal savivaldybių susirgimo dydį
+dg['rank'] = relative_rank  # priskiria rank duomenis apjungtai duomenų struktūrai
+print("--------------------------------------------------------------------------------------------------------------------")
+print(dg)
+dg.date = dg.date.str[:10] #sutrumpina date reiksmes atmentant laiką
+dg = dg[["date", "rank", "municipality_name"]]  # paruošia duomenis grafikui
+
+##---------Grafiko braizymas-------------------------------------------------------
+
+#Parenkami filtrai didžiausiem ir mažiausiems rangams paskutinę sergamumo dieną
+
+# paskutinės datos filtras
+mask0 = dg.date == '2022/02/23'
+# rango filtras
+mask1 = dg['rank'] == 1.0
+mask2 = dg['rank'] == 2.0
+mask3 = dg['rank'] == 3.0
+mask4 = dg['rank'] == 4.0
+mask5 = dg['rank'] == 5.0
+mask6 = dg['rank'] == 56.0
+mask7 = dg['rank'] == 57.0
+mask8 = dg['rank'] == 58.0
+mask9 = dg['rank'] == 59.0
+mask10 = dg['rank'] == 60.0
+# Randa savivaldybes pagal rangą
+sav1 = dg.municipality_name.loc[mask0 & mask1]
+sav2 = dg.municipality_name.loc[mask0 & mask2]
+sav3 = dg.municipality_name.loc[mask0 & mask3]
+sav4 = dg.municipality_name.loc[mask0 & mask4]
+sav5 = dg.municipality_name.loc[mask0 & mask5]
+sav6 = dg.municipality_name.loc[mask0 & mask6]
+sav7 = dg.municipality_name.loc[mask0 & mask7]
+sav8 = dg.municipality_name.loc[mask0 & mask8]
+sav9 = dg.municipality_name.loc[mask0 & mask9]
+sav10 = dg.municipality_name.loc[mask0 & mask10]
+# kadangi duomenys yra "ndarray" juos keičiam į "string" tipą ir "apkarpo"
+sav1 = cut(np.array2string(sav1.values))
+sav2 = cut(np.array2string(sav2.values))
+sav3 = cut(np.array2string(sav3.values))
+sav4 = cut(np.array2string(sav4.values))
+sav5 = cut(np.array2string(sav5.values))
+sav6 = cut(np.array2string(sav6.values))
+sav7 = cut(np.array2string(sav7.values))
+sav8 = cut(np.array2string(sav8.values))
+sav9 = cut(np.array2string(sav9.values))
+sav10 = cut(np.array2string(sav10.values))
+
+##-----------------Grafiko braižymas-------------------------------------------------
+
+fig, ax = plt.subplots()
+for i, j in dg.groupby("municipality_name"):  # grafiko braižymas pagal savivaldybes
+    if (i == sav1):  # kiekvienam savivaldybės rankui priskiraima spalva
+        col = "maroon"
+    elif (i == sav2):
+        col = "firebrick"
+    elif (i == sav3):
+        col = "red"
+    elif (i == sav4):
+        col = "tomato"
+    elif (i == sav5):
+        col = "lightsalmon"
+    elif (i == sav6):
+        col = "aquamarine"
+    elif (i == sav7):
+        col = "cyan"
+    elif (i == sav8):
+        col = "darkslateblue"
+    elif (i == sav9):
+        col = "blue"
+    elif (i == sav10):
+        col = "navy"
+    else:
+        col = 'lightgrey'
+    ax.plot("date", "rank", ".-", data=j, mfc='w', color=col, linewidth=0.5)
+    # grafiko duomenų išdėstymas
+    ax.annotate(j.iloc[-1][2],  # tekstas,kuris rašomas
+                xy=('2022/02/23', j.iloc[-1][1]),
+                # vieta kur rašomas tekstas
+                va='center',
+                fontsize=5)
+plt.gca().invert_yaxis()
+plt.xticks(fontsize=8, rotation=90)  # aprašoma x ašies kintamieji
+plt.suptitle("Sergamumas COVID savivaldybėse pagal savivaldybių rangus",fontsize=14)
+plt.title("Didžiausio sergamumo laikotarpis\nLaikom kad asmuo serga 14 dienų",fontsize=9)
+plt.ylabel('Rangas/savivaldybės',fontsize=12)
+plt.xlabel('Laikotarpis',fontsize=12)
+
+
+##-------Visų aprašytų grafiko sąlygų atvaizdavimas----------------------------------
+plt.show()
+
