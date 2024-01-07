@@ -1,0 +1,55 @@
+##----------------------------COVID RINKINIO DUOMENŲ NORMAVIMAS------------------
+import pandas as pd
+pd.set_option("display.max_columns",20)
+pd.set_option("display.max_rows",155)
+pd.set_option("display.width",200)
+
+##-------------------Nuskaito duomenis iš failų ir paruošia juos sujungimui----------
+
+cov19mun = pd.read_csv("C:/Users/Lenovo/Desktop/Covid_savivaldybes2.csv")
+# nuskaito duomenis kur susirgimai suskirstyti pagal savivaldybes
+norms = pd.read_csv('C:/Users/Lenovo/Desktop/normos.csv')
+# nuskaito 2022 m. duomenis kur Lietuvos gyventojai  suskirstyti pagal sav.
+norms.rename(columns={'savivaldybe': 'municipality_name'}, inplace=True)
+norms.rename(columns={'viso': 'mun_coef'}, inplace=True)
+# pakeičia stulpelio pavadinimą , kad būtų galimas 2 duomenų struktūrų sujungimas
+#litpop.rename(columns={'Miestas ir kaimas': 'population'}, inplace=True)
+cov19mun.drop('Unnamed: 0', axis=1, inplace=True)
+dg = cov19mun.merge(norms, how="inner", on='municipality_name')
+# sujungia 2 duomenų struktūras i duomenis grafikui
+#testd=dg.head(20)
+
+##----------Pagal tai kokiai am=iaus grupei priklauso ar yra moteris padalina i6 atitinkamos normos
+for i in range(0, len(dg)):
+    match dg.iloc[i,4]:
+        case '0-9':
+            j = 7
+        case '10-19':
+            j = 8
+        case '20-29':
+            j = 9
+        case '30-39':
+            j = 10
+        case '40-49':
+            j = 11
+        case '50-59':
+            j = 12
+        case '60-69':
+            j = 13
+        case '70-79':
+            j = 14
+        case '80-89':
+            j = 15
+        case '90-99':
+            j = 16
+        case '100-109':
+            j = 17
+    dg.iloc[i,2] = dg.iloc[i,2]/dg.iloc[i, j]
+    if dg.iloc[i,3]== 'Moteris':
+        dg.iloc[i, 2] = dg.iloc[i, 2] / dg.iloc[i, 18]
+    dg.iloc[i,2] = round(dg.iloc[i,2],4)
+dg['prevalence'] = dg['incidence']/dg['mun_coef']
+print(dg['m/v'])
+dg=dg[['municipality_name','date','prevalence']]
+dg.to_csv('C:/Users/Lenovo/Desktop/sunormuota.csv')
+print(dg)
